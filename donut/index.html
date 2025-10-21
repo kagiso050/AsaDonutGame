@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Donut Catcher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Dancing Script', cursive;
+      background: url('https://cdn.vectorstock.com/i/500p/34/44/magical-candy-village-vector-51673444.jpg') center/cover no-repeat fixed;
+      overflow: hidden;
+    }
+    #menu, #modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.85);
+      z-index: 10;
+    }
+    #menuContent, #modalContent {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      max-width: 600px;
+    }
+    h1 {
+      font-size: 48px;
+      color: #ff69b4;
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 22px;
+      color: #6b2b5b;
+      margin-bottom: 20px;
+    }
+    button {
+      font-size: 20px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(to right, #ff9aa2, #ff6b81);
+      color: white;
+      cursor: pointer;
+    }
+    #game {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: none;
+    }
+    #score {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.8);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #6b2b5b;
+      z-index: 5;
+    }
+    .donut {
+      position: absolute;
+      font-size: 40px;
+      animation: fall linear forwards;
+    }
+    @keyframes fall {
+      to {
+        transform: translateY(100vh);
+        opacity: 1;
+      }
+    }
+    #basket {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 60px;
+      pointer-events: none;
+      z-index: 5;
+    }
+    canvas#confettiCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+
+<body>
+    <audio id="bgMusic" autoplay loop>
+      <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_8c7b6e3c2e.mp3?filename=soft-background-ambient-110397.mp3" type="audio/mp3">
+    </audio>
+    <audio id="popSound">
+      <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2b8c7e3c2e.mp3?filename=pop-110398.mp3" type="audio/mp3">
+    </audio>
+  
+    <canvas id="confettiCanvas"></canvas>
+  
+    <div id="menu">
+      <div id="menuContent">
+        <h1>Donut Catcher</h1>
+        <p>In English we say don't compare yourself<br>
+        but in poetry we say:<br>
+        You are an orchid, in the world full of roses and lilies,<br>
+        you are born to bloom in the dark wood of forests,<br>
+        unique from the rest</p>
+        <button id="startBtn">New Game</button>
+      </div>
+    </div>
+  
+    <div id="game">
+      <div id="score">Donuts: 0 / 24</div>
+      <div id="basket">🧺</div>
+    </div>
+  
+    <div id="modal" style="display:none;">
+      <div id="modalContent">
+        <p>Will you be my girlfriend?</p>
+        <button id="yesBtn">Yes</button>
+        <button id="noBtn">No</button>
+        <div id="result" style="margin-top: 20px;"></div>
+      </div>
+    </div>
+
+    <script>
+        let score = 0;
+        let gameInterval;
+        const basket = document.getElementById('basket');
+        const scoreDisplay = document.getElementById('score');
+        const gameArea = document.getElementById('game');
+        const popSound = document.getElementById('popSound');
+        const confettiCanvas = document.getElementById('confettiCanvas');
+        const ctx = confettiCanvas.getContext('2d');
+    
+        document.getElementById('startBtn').onclick = () => {
+          document.getElementById('menu').style.display = 'none';
+          gameArea.style.display = 'block';
+          score = 0;
+          scoreDisplay.textContent = `Donuts: ${score} / 24`;
+          gameInterval = setInterval(spawnDonuts, 2000);
+          requestAnimationFrame(checkCollisions);
+        };
+    
+        function spawnDonuts() {
+          const count = Math.floor(Math.random() * 4) + 1;
+          for (let i = 0; i < count; i++) {
+            const donut = document.createElement('div');
+            donut.className = 'donut';
+            donut.textContent = '🍩';
+            donut.style.left = Math.random() * window.innerWidth + 'px';
+            donut.style.top = '-50px';
+            donut.style.animationDuration = (Math.random() * 2 + 3) + 's';
+            document.body.appendChild(donut);
+            setTimeout(() => donut.remove(), 6000);
+          }
+        }
+    
+        function checkCollisions() {
+          const donuts = document.querySelectorAll('.donut');
+          const basketRect = basket.getBoundingClientRect();
+          donuts.forEach(donut => {
+            const rect = donut.getBoundingClientRect();
+            if (
+              rect.bottom >= basketRect.top &&
+              rect.left < basketRect.right &&
+              rect.right > basketRect.left
+            ) {
+              donut.remove();
+              score++;
+              scoreDisplay.textContent = `Donuts: ${score} / 24`;
+              popSound.play();
+              if (score >= 24) endGame();
+            }
+          });
+          requestAnimationFrame(checkCollisions);
+        }
+    
+        function endGame() {
+          clearInterval(gameInterval);
+          document.getElementById('modal').style.display = 'flex';
+        }
+    
+        document.addEventListener('mousemove', e => {
+          basket.style.left = e.clientX + 'px';
+        });
+    
+        document.addEventListener('touchmove', e => {
+          const touch = e.touches[0];
+          if (touch) basket.style.left = touch.clientX + 'px';
+        });
+    
+        document.getElementById('yesBtn').onclick = () => {
+          document.getElementById('result').textContent = '24/10/2025';
+          launchConfettiForever();
+        };
+        document.getElementById('noBtn').onclick = () => {
+          document.getElementById('result').textContent = '💔';
+        };
+    
+        function launchConfettiForever() {
+          confettiCanvas.width = window.innerWidth;
+          confettiCanvas.height = window.innerHeight;
+          const particles = [];
+    
+          for (let i = 0; i < 200; i++) {
+            particles.push({
+              x: Math.random() * confettiCanvas.width,
+              y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+              r: Math.random() * 6 + 4,
+              color: `hsl(${Math.random() * 360}, 100%, 70%)`,
+              vx: Math.random() * 4 - 2,
+              vy: Math.random() * 4 + 2
+            });
+          }
+    
+          function animate() {
+            ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            particles.forEach(p => {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+              ctx.fillStyle = p.color;
+              ctx.fill();
+              p.x += p.vx;
+              p.y += p.vy;
+              if (p.y > confettiCanvas.height) {
+                p.y = -10;
+                p.x = Math.random() * confettiCanvas.width;
+              }
+            });
+            requestAnimationFrame(animate);
+          }
+          animate();
+        }
+      </script>
+    </body>
+    </html>
